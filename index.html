@@ -687,13 +687,7 @@ const IMP_SUB  = ['','near-flat','low amplitude','subtle','gentle','mid-level wa
 const STORAGE_KEY = 'life-timeline-entries';
 const STORAGE_ID_KEY = 'life-timeline-nextid';
 
-const _defaultEntries = [
-  { id:1, type:'positive', title:'Graduated university', desc:'Years of hard work finally paid off.', month:6,  year:2018, impact:8  },
-  { id:2, type:'negative', title:'Lost my job',           desc:'Unexpected redundancy hit hard.',        month:3,  year:2019, impact:7  },
-  { id:3, type:'positive', title:'Met my partner',        desc:'A chance encounter changed everything.', month:10, year:2019, impact:10 },
-  { id:4, type:'negative', title:'Family illness',        desc:'A difficult time caring for a parent.',  month:2,  year:2021, impact:9  },
-  { id:5, type:'positive', title:'Promoted at work',      desc:'',                                       month:7,  year:2022, impact:6  },
-];
+const _defaultEntries = [];
 
 function loadEntries() {
   try {
@@ -711,7 +705,7 @@ function saveEntries() {
 }
 
 let entries = loadEntries();
-let nextId = parseInt(localStorage.getItem(STORAGE_ID_KEY) || '0') || Math.max(...entries.map(e => e.id), 0) + 1;
+let nextId = parseInt(localStorage.getItem(STORAGE_ID_KEY) || '0') || (entries.length ? Math.max(...entries.map(e => e.id)) + 1 : 1);
 let editingId = null, deletingId = null, currentType = 'positive';
 let isDemoMode = false;
 let isAnimatingZoom = false;
@@ -1038,7 +1032,7 @@ function render() {
   }
 
   // ── Wave parameters ─────────────────────────────────────────
-  const N = isAnimatingZoom ? Math.ceil(W / 4) : Math.ceil(W * 1.5);
+  const N = Math.ceil(W * 1.5);
   const xs = Array.from({ length: N }, (_, i) => (i / (N - 1)) * W);
 
   // Hann (raised-cosine) window: exactly 0 outside [-halfW, +halfW]
@@ -1311,69 +1305,28 @@ function scrollToNowCentre() {
 
 function goToNow() {
   const track = document.getElementById('scrollTrack');
-  const targetZoomIdx = 4; // 100%
-  const targetPxPerMonth = ZOOM_LEVELS[targetZoomIdx]; // 140
+  const targetZoomIdx = 4;
   const targetMonth = nowM();
 
-  function anchorToNow() {
-    const x = (targetMonth - tStartM) * PX_PER_MONTH;
-    track.scrollLeft = Math.max(0, x - track.clientWidth / 2);
-  }
-
-  let frameCount = 0;
-
-  function doZoom(cb) {
-    const endPx = targetPxPerMonth;
-
-    if (Math.abs(PX_PER_MONTH - endPx) < 0.5) {
-      isAnimatingZoom = false;
-      zoomIdx = targetZoomIdx;
-      PX_PER_MONTH = endPx;
-      document.getElementById('zoomLabel').textContent = ZOOM_LABELS[zoomIdx];
-      document.getElementById('zoomOut').disabled = zoomIdx === 0;
-      document.getElementById('zoomIn').disabled  = zoomIdx === ZOOM_LEVELS.length - 1;
-      render();
-      anchorToNow();
-      cb();
-      return;
-    }
-
-    PX_PER_MONTH += (endPx - PX_PER_MONTH) * 0.018;
-
-    const nearest = ZOOM_LEVELS.reduce((best, v, i) =>
-      Math.abs(v - PX_PER_MONTH) < Math.abs(ZOOM_LEVELS[best] - PX_PER_MONTH) ? i : best, 0);
-    if (nearest !== zoomIdx) {
-      zoomIdx = nearest;
-      document.getElementById('zoomLabel').textContent = ZOOM_LABELS[zoomIdx];
-      document.getElementById('zoomOut').disabled = zoomIdx === 0;
-      document.getElementById('zoomIn').disabled  = zoomIdx === ZOOM_LEVELS.length - 1;
-    }
-
-    render(); // low-res wave during animation
-    anchorToNow();
-    requestAnimationFrame(() => doZoom(cb));
-  }
-
-  isAnimatingZoom = true;
-
-  // 1. Smooth scroll to now at current zoom
+  // Step 1: instantly set zoom to target
+  zoomIdx = targetZoomIdx;
+  PX_PER_MONTH = ZOOM_LEVELS[targetZoomIdx];
+  document.getElementById('zoomLabel').textContent = ZOOM_LABELS[zoomIdx];
+  document.getElementById('zoomOut').disabled = zoomIdx === 0;
+  document.getElementById('zoomIn').disabled = zoomIdx === ZOOM_LEVELS.length - 1;
   render();
-  const targetScroll = Math.max(0, (targetMonth - tStartM) * PX_PER_MONTH - track.clientWidth / 2);
 
-  if (Math.abs(track.scrollLeft - targetScroll) < 4) {
-    doZoom(() => updateFab());
-    return;
-  }
-
+  // Step 2: smooth scroll to now
+  const nowX = (targetMonth - tStartM) * PX_PER_MONTH;
+  const targetScroll = Math.max(0, nowX - track.clientWidth / 2);
   track.scrollTo({ left: targetScroll, behavior: 'smooth' });
 
-  // 2. Watch for scroll to settle, then zoom
-  let lastLeft = -1;
-  let stallCount = 0;
+  // Step 3: update FAB once scroll settles
+  let lastLeft = -1, stallCount = 0;
   function watchScroll() {
     if (track.scrollLeft === lastLeft) {
       stallCount++;
-      if (stallCount >= 4) { doZoom(() => updateFab()); return; }
+      if (stallCount >= 4) { updateFab(); return; }
     } else {
       stallCount = 0;
       lastLeft = track.scrollLeft;
