@@ -714,6 +714,7 @@ let entries = loadEntries();
 let nextId = parseInt(localStorage.getItem(STORAGE_ID_KEY) || '0') || Math.max(...entries.map(e => e.id), 0) + 1;
 let editingId = null, deletingId = null, currentType = 'positive';
 let isDemoMode = false;
+let isAnimatingZoom = false;
 let _savedEntries = null; // snapshot of real entries while in demo
 
 // ── Demo data ───────────────────────────────────────────────────
@@ -1037,7 +1038,7 @@ function render() {
   }
 
   // ── Wave parameters ─────────────────────────────────────────
-  const N = Math.ceil(W * 1.5);
+  const N = isAnimatingZoom ? Math.ceil(W / 4) : Math.ceil(W * 1.5);
   const xs = Array.from({ length: N }, (_, i) => (i / (N - 1)) * W);
 
   // Hann (raised-cosine) window: exactly 0 outside [-halfW, +halfW]
@@ -1319,19 +1320,26 @@ function goToNow() {
     track.scrollLeft = Math.max(0, x - track.clientWidth / 2);
   }
 
+  let frameCount = 0;
+
   function doZoom(cb) {
-    if (Math.abs(PX_PER_MONTH - targetPxPerMonth) < 0.5) {
-      // snap to exact target
+    const endPx = targetPxPerMonth;
+
+    if (Math.abs(PX_PER_MONTH - endPx) < 0.5) {
+      isAnimatingZoom = false;
       zoomIdx = targetZoomIdx;
-      PX_PER_MONTH = targetPxPerMonth;
+      PX_PER_MONTH = endPx;
       document.getElementById('zoomLabel').textContent = ZOOM_LABELS[zoomIdx];
       document.getElementById('zoomOut').disabled = zoomIdx === 0;
       document.getElementById('zoomIn').disabled  = zoomIdx === ZOOM_LEVELS.length - 1;
-      render(); anchorToNow(); cb(); return;
+      render();
+      anchorToNow();
+      cb();
+      return;
     }
-    // Ease toward target: move 10% of remaining distance per frame
-    PX_PER_MONTH += (targetPxPerMonth - PX_PER_MONTH) * 0.018;
-    // Update zoomIdx to nearest level for UI labels
+
+    PX_PER_MONTH += (endPx - PX_PER_MONTH) * 0.018;
+
     const nearest = ZOOM_LEVELS.reduce((best, v, i) =>
       Math.abs(v - PX_PER_MONTH) < Math.abs(ZOOM_LEVELS[best] - PX_PER_MONTH) ? i : best, 0);
     if (nearest !== zoomIdx) {
@@ -1340,10 +1348,13 @@ function goToNow() {
       document.getElementById('zoomOut').disabled = zoomIdx === 0;
       document.getElementById('zoomIn').disabled  = zoomIdx === ZOOM_LEVELS.length - 1;
     }
-    render();
+
+    render(); // low-res wave during animation
     anchorToNow();
     requestAnimationFrame(() => doZoom(cb));
   }
+
+  isAnimatingZoom = true;
 
   // 1. Smooth scroll to now at current zoom
   render();
