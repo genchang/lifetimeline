@@ -51,21 +51,17 @@
     letter-spacing: 0.08em; text-transform: uppercase;
   }
   .header-right { display: flex; align-items: center; gap: 24px; }
-  .legend { display: flex; gap: 8px; align-items: center; }
-  .legend-toggle {
+  .legend { display: flex; gap: 14px; align-items: center; }
+  .legend-key {
     display: flex; align-items: center; gap: 7px;
-    padding: 6px 12px; border-radius: 100px; cursor: pointer;
-    border: 1px solid transparent; font-family: 'DM Sans', sans-serif;
-    font-size: 12px; font-weight: 500; transition: all 0.2s; user-select: none;
-    color: var(--text-muted); background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; font-weight: 500; user-select: none;
   }
-  .legend-toggle .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; transition: all 0.2s; }
-  .legend-toggle.pos .legend-dot { background: var(--positive); box-shadow: 0 0 8px var(--positive-glow); }
-  .legend-toggle.neg .legend-dot { background: var(--negative); box-shadow: 0 0 8px var(--negative-glow); }
-  .legend-toggle.pos { border-color: rgba(109,232,160,0.2); color: var(--positive); background: rgba(109,232,160,0.06); }
-  .legend-toggle.neg { border-color: rgba(232,109,109,0.2); color: var(--negative); background: rgba(232,109,109,0.06); }
-  .legend-toggle.off { border-color: var(--border); color: var(--text-dim); background: transparent; }
-  .legend-toggle.off .legend-dot { background: var(--border); box-shadow: none; }
+  .legend-key .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .legend-key.pos .legend-dot { background: var(--positive); box-shadow: 0 0 6px var(--positive-glow); }
+  .legend-key.neg .legend-dot { background: var(--negative); box-shadow: 0 0 6px var(--negative-glow); }
+  .legend-key.pos { color: rgba(109,232,160,0.7); }
+  .legend-key.neg { color: rgba(232,109,109,0.7); }
   .add-btn {
     background: var(--surface2); border: 1px solid var(--border); color: var(--text);
     padding: 10px 22px; border-radius: 100px; font-family: 'DM Sans', sans-serif;
@@ -494,6 +490,25 @@
   .fab-now:hover { background: var(--surface2); border-color: var(--text-muted); color: var(--text); }
   .fab-now svg { opacity: 0.7; }
   .fab-now:hover svg { opacity: 1; }
+
+  .waveonly-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+    padding: 10px 16px; border-radius: 100px; font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .waveonly-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--text-muted); }
+  .waveonly-btn.active {
+    background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.25);
+    color: var(--text);
+  }
+  .waveonly-btn svg { opacity: 0.6; transition: opacity 0.2s; }
+  .waveonly-btn:hover svg, .waveonly-btn.active svg { opacity: 1; }
+
+  /* Hide all event labels in waveform-only mode */
+  body.waveonly-mode .event-label { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  body.waveonly-mode .time-strip { opacity: 0; transition: opacity 0.3s; }
+  .event-label { transition: opacity 0.3s; }
 </style>
 </head>
 <body>
@@ -505,12 +520,12 @@
   </div>
   <div class="header-right">
     <div class="legend">
-      <button class="legend-toggle pos" id="legendPos" onclick="toggleWave('positive')">
+      <div class="legend-key pos">
         <div class="legend-dot"></div>Positive
-      </button>
-      <button class="legend-toggle neg" id="legendNeg" onclick="toggleWave('negative')">
+      </div>
+      <div class="legend-key neg">
         <div class="legend-dot"></div>Negative
-      </button>
+      </div>
     </div>
     <div class="zoom-controls">
       <button class="zoom-btn" id="zoomOut" onclick="setZoom(zoomIdx-1)" title="Zoom out">−</button>
@@ -520,6 +535,12 @@
     <button class="add-btn" id="addBtn" onclick="openModal()">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       Add experience
+    </button>
+    <button class="waveonly-btn" id="waveonlyBtn" onclick="toggleWaveOnly()" title="Show waveform only">
+      <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
+        <path d="M1 5 Q2.5 1 4 5 Q5.5 9 7 5 Q8.5 1 10 5 Q11.5 9 13 5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Waveform
     </button>
     <button class="demo-btn" id="demoBtn" onclick="enterDemo()">
       <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 2l9 4.5L2 11V2z" fill="currentColor"/></svg>
@@ -722,19 +743,7 @@ let editingId = null, deletingId = null, currentType = 'positive';
 let isDemoMode = false;
 let isAnimatingZoom = false;
 let _savedEntries = null;
-let showPosWave = true;
-let showNegWave = true;
-
-function toggleWave(type) {
-  if (type === 'positive') {
-    showPosWave = !showPosWave;
-    document.getElementById('legendPos').classList.toggle('off', !showPosWave);
-  } else {
-    showNegWave = !showNegWave;
-    document.getElementById('legendNeg').classList.toggle('off', !showNegWave);
-  }
-  render();
-} // snapshot of real entries while in demo
+let showDashLines = true; // snapshot of real entries while in demo
 
 // ── Demo data ───────────────────────────────────────────────────
 const DEMO_ENTRIES = [
@@ -775,8 +784,23 @@ const DEMO_ENTRIES = [
 let _savedZoomIdx = 4;
 let _savedScrollLeft = 0;
 
+function stopAudio() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    if (noiseSource) { try { noiseSource.stop(); } catch(e) {} noiseSource = null; }
+    document.querySelectorAll('.orb-play-btn').forEach(b => {
+      b.classList.remove('playing');
+      b.innerHTML = playIcon();
+    });
+    currentAudio = null;
+    currentPlayingId = null;
+  }
+}
+
 function enterDemo(skipOnboarding = false) {
   if (isDemoMode) return;
+  stopAudio();
   isDemoMode = true;
   _savedEntries = entries;
   // Snapshot the user's current zoom and scroll position
@@ -808,6 +832,7 @@ function enterDemo(skipOnboarding = false) {
 
 function exitDemo() {
   if (!isDemoMode) return;
+  stopAudio();
   isDemoMode = false;
   entries = _savedEntries;
   _savedEntries = null;
@@ -942,10 +967,9 @@ function render() {
   ctx.fillRect(0, 0, W, H);
 
   // ── Zoom-responsive detail thresholds ──────────────────────
-  const showMonthLabels  = PX_PER_MONTH >= 55;  // hide month text when very zoomed out
-  const showMonthTicks   = PX_PER_MONTH >= 35;  // hide individual month ticks
-  const showGreyDots     = PX_PER_MONTH >= 35;  // hide grey empty-month dots
-  const showEventDates   = PX_PER_MONTH >= 55;  // hide date labels under event dots
+  const showMonthLabels  = PX_PER_MONTH >= 55;
+  const showMonthTicks   = PX_PER_MONTH >= 35;
+  const showGreyDots     = PX_PER_MONTH >= 35;
 
   // Draw baseline
   ctx.strokeStyle = 'rgba(255,255,255,0.18)';
@@ -953,89 +977,87 @@ function render() {
   ctx.setLineDash([]);
   ctx.beginPath(); ctx.moveTo(0, midY); ctx.lineTo(W, midY); ctx.stroke();
 
-  // Draw month ticks + labels directly on baseline
-  ctx.textAlign = 'center';
-  for (let m = tStartM; m <= tStartM + totalMonths; m++) {
-    const { y, m: mo } = mToDate(m);
-    const x = (m - tStartM) * PX_PER_MONTH;
-    const isJan = mo === 1;
+  if (showDashLines) {
+    // Draw month ticks + labels directly on baseline
+    ctx.textAlign = 'center';
+    for (let m = tStartM; m <= tStartM + totalMonths; m++) {
+      const { y, m: mo } = mToDate(m);
+      const x = (m - tStartM) * PX_PER_MONTH;
+      const isJan = mo === 1;
 
-    // Tick mark — always show Jan, show others only if zoomed enough
-    if (isJan || showMonthTicks) {
-      const tickH = isJan ? 10 : 5;
-      ctx.strokeStyle = isJan ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.12)';
-      ctx.lineWidth = isJan ? 1 : 0.5;
+      if (isJan || showMonthTicks) {
+        const tickH = isJan ? 10 : 5;
+        ctx.strokeStyle = isJan ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.12)';
+        ctx.lineWidth = isJan ? 1 : 0.5;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(x, midY - tickH / 2);
+        ctx.lineTo(x, midY + tickH / 2);
+        ctx.stroke();
+      }
+
+      if (isJan) {
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.font = `500 ${PX_PER_MONTH < 35 ? '10' : '11'}px DM Sans`;
+        ctx.letterSpacing = '0.08em';
+        ctx.fillText(y, x, midY - 16);
+        ctx.letterSpacing = '0';
+      }
+
+      if (showMonthLabels) {
+        ctx.fillStyle = 'rgba(255,255,255,0.22)';
+        ctx.font = '10px DM Sans';
+        ctx.fillText(MONTHS_S[mo], x, midY + 20);
+      }
+    }
+
+    // Grey dots for months with no events
+    const eventMonthKeys = new Set(entries.map(e => `${e.year}-${e.month || 6}`));
+    if (showGreyDots) {
+      for (let m = tStartM; m <= tStartM + totalMonths; m++) {
+        const { y, m: mo } = mToDate(m);
+        const key = `${y}-${mo}`;
+        if (eventMonthKeys.has(key)) continue;
+        const x = (m - tStartM) * PX_PER_MONTH;
+        ctx.beginPath();
+        ctx.arc(x, midY, 3, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([]);
+        ctx.stroke();
+      }
+    }
+
+    // Event dots on baseline
+    const dotR = Math.max(2, Math.min(4, PX_PER_MONTH / 35));
+    const monthDots = {};
+    entries.forEach(e => {
+      const key = eToM(e);
+      if (!monthDots[key]) monthDots[key] = { pos: 0, neg: 0, x: (key - tStartM) * PX_PER_MONTH };
+      if (e.type === 'positive') monthDots[key].pos += e.impact;
+      else                        monthDots[key].neg += e.impact;
+    });
+    Object.values(monthDots).forEach(({ pos, neg, x }) => {
+      const net  = pos - neg;
+      const col  = net >= 0 ? '#6de8a0' : '#e86d6d';
+      const glow = net >= 0 ? 'rgba(109,232,160,0.5)' : 'rgba(232,109,109,0.5)';
+      if (dotR > 2.5) {
+        ctx.beginPath();
+        ctx.arc(x, midY, dotR + 3, 0, Math.PI * 2);
+        ctx.fillStyle = net >= 0 ? 'rgba(109,232,160,0.08)' : 'rgba(232,109,109,0.08)';
+        ctx.fill();
+      }
+      ctx.beginPath();
+      ctx.arc(x, midY, dotR, 0, Math.PI * 2);
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 1.5;
       ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.moveTo(x, midY - tickH / 2);
-      ctx.lineTo(x, midY + tickH / 2);
+      ctx.shadowColor = glow;
+      ctx.shadowBlur = dotR > 2.5 ? 8 : 4;
       ctx.stroke();
-    }
-
-    // Year label — always show above Jan
-    if (isJan) {
-      ctx.fillStyle = 'rgba(255,255,255,0.45)';
-      ctx.font = `500 ${PX_PER_MONTH < 35 ? '10' : '11'}px DM Sans`;
-      ctx.letterSpacing = '0.08em';
-      ctx.fillText(y, x, midY - 16);
-      ctx.letterSpacing = '0';
-    }
-
-    // Month label — only when zoomed in enough
-    if (showMonthLabels) {
-      ctx.fillStyle = 'rgba(255,255,255,0.22)';
-      ctx.font = '10px DM Sans';
-      ctx.fillText(MONTHS_S[mo], x, midY + 20);
-    }
-  }
-
-  // Grey dots for months with no events
-  const eventMonthKeys = new Set(entries.map(e => `${e.year}-${e.month || 6}`));
-  if (showGreyDots) {
-  for (let m = tStartM; m <= tStartM + totalMonths; m++) {
-    const { y, m: mo } = mToDate(m);
-    const key = `${y}-${mo}`;
-    if (eventMonthKeys.has(key)) continue;
-    const x = (m - tStartM) * PX_PER_MONTH;
-    ctx.beginPath();
-    ctx.arc(x, midY, 3, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([]);
-    ctx.stroke();
-  }
-  } // end showGreyDots
-
-  // Event dots on baseline — one dot per month, colour = net direction
-  const dotR = Math.max(2, Math.min(4, PX_PER_MONTH / 35));
-  // Build per-month summary: net impact score
-  const monthDots = {};
-  entries.forEach(e => {
-    const key = eToM(e);
-    if (!monthDots[key]) monthDots[key] = { pos: 0, neg: 0, x: (key - tStartM) * PX_PER_MONTH };
-    if (e.type === 'positive') monthDots[key].pos += e.impact;
-    else                        monthDots[key].neg += e.impact;
-  });
-  Object.values(monthDots).forEach(({ pos, neg, x }) => {
-    const net  = pos - neg;
-    const col  = net >= 0 ? '#6de8a0' : '#e86d6d';
-    const glow = net >= 0 ? 'rgba(109,232,160,0.5)' : 'rgba(232,109,109,0.5)';
-    if (dotR > 2.5) {
-      ctx.beginPath();
-      ctx.arc(x, midY, dotR + 3, 0, Math.PI * 2);
-      ctx.fillStyle = net >= 0 ? 'rgba(109,232,160,0.08)' : 'rgba(232,109,109,0.08)';
-      ctx.fill();
-    }
-    ctx.beginPath();
-    ctx.arc(x, midY, dotR, 0, Math.PI * 2);
-    ctx.strokeStyle = col;
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([]);
-    ctx.shadowColor = glow;
-    ctx.shadowBlur = dotR > 2.5 ? 8 : 4;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-  });
+      ctx.shadowBlur = 0;
+    });
+  } // end showDashLines
 
   // NOW dot on baseline
   const nowX = (nowM() - tStartM) * PX_PER_MONTH;
@@ -1046,9 +1068,11 @@ function render() {
     ctx.fillStyle = '#ffffff';
     ctx.shadowColor = 'rgba(255,255,255,0.6)'; ctx.shadowBlur = 8;
     ctx.fill(); ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.font = '10px DM Sans'; ctx.textAlign = 'center';
-    ctx.fillText('now', nowX, midY - 10);
+    if (showDashLines) {
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.font = '10px DM Sans'; ctx.textAlign = 'center';
+      ctx.fillText('now', nowX, midY - 10);
+    }
   }
 
   if (entries.length === 0) {
@@ -1117,8 +1141,8 @@ function render() {
   }
 
   // Draw negative first (below), then positive (above)
-  if (negParams.length > 0 && showNegWave) drawGroupLine(negWave, 'rgba(232,109,109,0.4)');
-  if (posParams.length > 0 && showPosWave) drawGroupLine(posWave, 'rgba(109,232,160,0.4)');
+  if (negParams.length > 0 && showDashLines) drawGroupLine(negWave, 'rgba(232,109,109,0.4)');
+  if (posParams.length > 0 && showDashLines) drawGroupLine(posWave, 'rgba(109,232,160,0.4)');
 
   // ── Composite: pixel-by-pixel sum of ALL entries ─────────────
   const composite = new Float64Array(N);
@@ -1198,7 +1222,8 @@ function buildEventLabels(container, midY, H) {
   const showPlay     = PX_PER_MONTH >= 35;
   const orbScale     = Math.max(0.3, Math.min(1, PX_PER_MONTH / 140));
   const connH        = showConn ? Math.round(20 * orbScale) : 2;
-  const textBlockH   = showTitle ? 28 : 0;
+  const titleSize    = Math.round(Math.max(9, 14 * orbScale));
+  const textBlockH   = showTitle ? Math.max(16, 28 * orbScale) : 0;
   const GAP          = 8; // gap between stacked orbs
 
   // Track the outermost used edge per month-key per direction
@@ -1246,7 +1271,7 @@ function buildEventLabels(container, midY, H) {
 
     const textHtml = showTitle ? `
       <div class="event-text">
-        <div class="event-title">${esc(e.title)}</div>
+        <div class="event-title" style="font-size:${titleSize}px">${esc(e.title)}</div>
       </div>` : '';
 
     const playHtml = (e.audio && showPlay) ? `
@@ -1413,12 +1438,95 @@ function resetAudioUI() {
   document.getElementById('audioClearBtn').style.display = 'none';
 }
 
+// ── Walkie-talkie audio effect ───────────────────────────────────
+let audioCtx = null;
+let noiseSource = null;
+
+function getAudioContext() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function createNoiseBuffer(ctx) {
+  const bufferSize = ctx.sampleRate * 2;
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+  return buffer;
+}
+
+function playWithWalkieTalkieEffect(audio, onEnded) {
+  const ctx = getAudioContext();
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const source = ctx.createMediaElementSource(audio);
+
+  // 1. Bandpass — wider, softer telephone range
+  const bandpass = ctx.createBiquadFilter();
+  bandpass.type = 'bandpass';
+  bandpass.frequency.value = 1800;
+  bandpass.Q.value = 0.5;
+
+  // 2. High-shelf cut — gentler roll-off
+  const highShelf = ctx.createBiquadFilter();
+  highShelf.type = 'highshelf';
+  highShelf.frequency.value = 3500;
+  highShelf.gain.value = -10;
+
+  // 3. Low cut — softer bass removal
+  const lowCut = ctx.createBiquadFilter();
+  lowCut.type = 'highpass';
+  lowCut.frequency.value = 250;
+  lowCut.Q.value = 0.5;
+
+  // 4. Distortion/crunch — much lighter
+  const distortion = ctx.createWaveShaper();
+  function makeDistortionCurve(amount) {
+    const n = 512, curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const x = (i * 2) / n - 1;
+      curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x));
+    }
+    return curve;
+  }
+  distortion.curve = makeDistortionCurve(20);
+  distortion.oversample = '2x';
+
+  // 5. Main gain — lower volume
+  const mainGain = ctx.createGain();
+  mainGain.gain.value = 1.2;
+
+  // 6. Compressor — gentler
+  const compressor = ctx.createDynamicsCompressor();
+  compressor.threshold.value = -18;
+  compressor.knee.value = 8;
+  compressor.ratio.value = 6;
+  compressor.attack.value = 0.005;
+  compressor.release.value = 0.15;
+
+  // Wire up the chain (no noise)
+  source.connect(lowCut);
+  lowCut.connect(bandpass);
+  bandpass.connect(highShelf);
+  highShelf.connect(distortion);
+  distortion.connect(mainGain);
+  mainGain.connect(compressor);
+  compressor.connect(ctx.destination);
+
+  const noiseNode = { stop: () => {} }; // stub so stop() call still works
+
+  audio.play();
+  audio.onended = () => { onEnded(); };
+
+  return noiseNode;
+}
+
 function toggleAudio(id, btn) {
   // Stop any currently playing audio
   if (currentAudio) {
     currentAudio.pause();
     currentAudio.currentTime = 0;
-    // Reset the previously playing button
+    if (noiseSource) { try { noiseSource.stop(); } catch(e) {} noiseSource = null; }
     document.querySelectorAll('.orb-play-btn').forEach(b => {
       b.classList.remove('playing');
       b.innerHTML = playIcon();
@@ -1426,22 +1534,25 @@ function toggleAudio(id, btn) {
     const wasPlaying = currentPlayingId === id;
     currentAudio = null;
     currentPlayingId = null;
-    if (wasPlaying) return; // toggled off — we're done
+    if (wasPlaying) return;
   }
-  // Start playing this entry's audio
+
   const entry = entries.find(e => e.id === id);
   if (!entry || !entry.audio) return;
+
   currentAudio = new Audio(entry.audio);
+  currentAudio.crossOrigin = 'anonymous';
   currentPlayingId = id;
   btn.classList.add('playing');
   btn.innerHTML = stopIcon();
-  currentAudio.play();
-  currentAudio.onended = () => {
+
+  noiseSource = playWithWalkieTalkieEffect(currentAudio, () => {
     btn.classList.remove('playing');
     btn.innerHTML = playIcon();
     currentAudio = null;
     currentPlayingId = null;
-  };
+    noiseSource = null;
+  });
 }
 
 function playIcon() {
@@ -1557,6 +1668,16 @@ function closeOnboardingDemo() {
 
 // Show on first visit
 openOnboarding();
+
+// ── Waveform-only mode ───────────────────────────────────────────
+function toggleWaveOnly() {
+  const active = document.body.classList.toggle('waveonly-mode');
+  showDashLines = !active;
+  const btn = document.getElementById('waveonlyBtn');
+  btn.classList.toggle('active', active);
+  btn.title = active ? 'Show events' : 'Show waveform only';
+  render();
+}
 
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
