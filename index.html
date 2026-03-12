@@ -575,7 +575,8 @@
       transition: color 0.15s;
     }
     .mobile-tab svg { opacity: 0.55; transition: opacity 0.15s; }
-    .mobile-tab.tab-active { color: var(--positive); cursor: default; pointer-events: none; }
+    .mobile-tab.tab-active { color: var(--positive); cursor: default; }
+    .mobile-tab.tab-active.tab-no-click { pointer-events: none; }
     .mobile-tab.tab-active svg { opacity: 1; }
     .mobile-tab.tab-disabled { opacity: 0.3; cursor: default; pointer-events: none; }
 
@@ -717,7 +718,7 @@
 <!-- Mobile bottom toolbar -->
 <div class="mobile-toolbar" id="mobileToolbar">
   <!-- My timeline tab (left) -->
-  <button class="mobile-tab tab-active" id="mobileHomeTab">
+  <button class="mobile-tab tab-active tab-no-click" id="mobileHomeTab">
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
       <path d="M3 9.5L10 3l7 6.5V17a1 1 0 01-1 1H13v-4H7v4H4a1 1 0 01-1-1V9.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
     </svg>
@@ -978,8 +979,8 @@ function enterDemo(skipOnboarding = false) {
   const mobileDemoTab = document.getElementById('mobileDemoTab');
   const mobileFab     = document.getElementById('mobileFabAdd');
   const mobileFabLbl  = document.getElementById('mobileFabLabel');
-  if (mobileHomeTab) { mobileHomeTab.classList.remove('tab-active'); mobileHomeTab.onclick = exitDemo; }
-  if (mobileDemoTab) { mobileDemoTab.classList.add('tab-active'); mobileDemoTab.onclick = null; }
+  if (mobileHomeTab) { mobileHomeTab.classList.remove('tab-active', 'tab-no-click'); mobileHomeTab.onclick = exitDemo; }
+  if (mobileDemoTab) { mobileDemoTab.classList.add('tab-active', 'tab-no-click'); mobileDemoTab.onclick = null; }
   if (mobileFab)     { mobileFab.classList.add('fab-disabled'); mobileFab.onclick = null; }
   if (mobileFabLbl)  { mobileFabLbl.style.opacity = '0.3'; }
   // Zoom to a comfortable level to show the full span
@@ -1005,7 +1006,7 @@ function exitDemo() {
   if (!isDemoMode) return;
   stopAudio();
   isDemoMode = false;
-  entries = _savedEntries;
+  entries = _savedEntries || [];
   _savedEntries = null;
   if (window.innerWidth > 640) document.getElementById('demoBtn').style.display = 'flex';
   document.getElementById('backBtn').style.display  = 'none';
@@ -1016,8 +1017,8 @@ function exitDemo() {
   const mobileDemoTab = document.getElementById('mobileDemoTab');
   const mobileFab     = document.getElementById('mobileFabAdd');
   const mobileFabLbl  = document.getElementById('mobileFabLabel');
-  if (mobileHomeTab) { mobileHomeTab.classList.add('tab-active'); mobileHomeTab.onclick = null; }
-  if (mobileDemoTab) { mobileDemoTab.classList.remove('tab-active'); mobileDemoTab.onclick = enterDemo; }
+  if (mobileHomeTab) { mobileHomeTab.classList.add('tab-active', 'tab-no-click'); mobileHomeTab.onclick = null; }
+  if (mobileDemoTab) { mobileDemoTab.classList.remove('tab-active', 'tab-no-click'); mobileDemoTab.onclick = enterDemo; }
   if (mobileFab)     { mobileFab.classList.remove('fab-disabled'); mobileFab.onclick = openModal; }
   if (mobileFabLbl)  { mobileFabLbl.style.opacity = ''; }
   // Restore the user's zoom and scroll position
