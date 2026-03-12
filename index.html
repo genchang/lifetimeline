@@ -970,6 +970,7 @@ function enterDemo(skipOnboarding = false) {
   stopAudio();
   isDemoMode = true;
   _savedEntries = JSON.parse(JSON.stringify(entries));
+  saveEntries(); // persist real entries to localStorage before demo overwrites state
   // Snapshot the user's current zoom and scroll position
   _savedZoomIdx = zoomIdx;
   _savedScrollLeft = document.getElementById('scrollTrack').scrollLeft;
@@ -1010,9 +1011,8 @@ function exitDemo() {
   if (!isDemoMode) return;
   stopAudio();
   isDemoMode = false;
-  entries = _savedEntries || [];
+  entries = loadEntries(); // always reload from localStorage — the definitive source
   _savedEntries = null;
-  saveEntries(); // re-sync localStorage with real entries (not demo data)
   if (window.innerWidth > 640) document.getElementById('demoBtn').style.display = 'flex';
   document.getElementById('backBtn').style.display  = 'none';
   if (window.innerWidth > 640) document.getElementById('addBtn').style.display = 'flex';
