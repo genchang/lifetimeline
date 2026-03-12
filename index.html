@@ -857,7 +857,11 @@
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
-    <div style="display:none;justify-content:center;" id="onboardClose">
+    <div style="display:none;flex-direction:column;align-items:center;gap:16px;" id="onboardClose">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text-muted);user-select:none;">
+        <input type="checkbox" id="demoSkipCheck" style="width:16px;height:16px;accent-color:var(--positive);cursor:pointer;flex-shrink:0;">
+        Don't show this again
+      </label>
       <button class="btn-onboard-start" style="flex:none;padding:13px 40px;" onclick="closeOnboardingDemo()">
         Got it
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1839,12 +1843,17 @@ function onboardStart() {
 }
 
 function openOnboardingDemo() {
+  if (localStorage.getItem('demo-skip-modal') === '1') return; // user opted out
   // Swap CTAs for a close button
   document.getElementById('onboardActions').style.display = 'none';
   document.getElementById('onboardClose').style.display = 'flex';
+  const cb = document.getElementById('demoSkipCheck');
+  if (cb) cb.checked = false; // reset each time in case re-opened
   document.getElementById('onboardOverlay').classList.add('open');
 }
 function closeOnboardingDemo() {
+  const cb = document.getElementById('demoSkipCheck');
+  if (cb && cb.checked) localStorage.setItem('demo-skip-modal', '1');
   document.getElementById('onboardActions').style.display = 'flex';
   document.getElementById('onboardClose').style.display = 'none';
   closeOnboarding();
