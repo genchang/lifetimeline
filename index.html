@@ -539,7 +539,7 @@
     .add-btn { display: none; }
     .waveonly-btn { display: none; }
     .demo-btn { display: none; }
-    .back-btn { font-size: 12px; padding: 8px 12px; gap: 5px; }
+    .back-btn { display: none !important; }
 
     /* Zoom pill stays, compact */
     .zoom-controls { padding: 4px 10px; gap: 4px; }
@@ -687,9 +687,13 @@
 
 <!-- Mobile bottom toolbar -->
 <div class="mobile-toolbar">
-  <button class="mobile-tool-btn add-mobile" onclick="openModal()">
+  <button class="mobile-tool-btn add-mobile" id="mobileAddBtn" onclick="openModal()">
     <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 3v16M3 11h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
     Add
+  </button>
+  <button class="mobile-tool-btn mobile-back-btn" id="mobileBackBtn" onclick="exitDemo()" style="display:none;color:var(--positive)">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M14 5L7 11l7 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    My timeline
   </button>
   <button class="mobile-tool-btn" id="mobileWaveonly" onclick="toggleWaveOnly()">
     <svg width="22" height="14" viewBox="0 0 22 14" fill="none"><path d="M1 7 Q4 1 7 7 Q10 13 13 7 Q16 1 19 7 Q20.5 10 21 7" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -933,8 +937,13 @@ function enterDemo(skipOnboarding = false) {
   document.getElementById('backBtn').style.display  = 'flex';
   document.getElementById('addBtn').style.display   = 'none';
   document.getElementById('demoBanner').classList.add('visible');
+  // Mobile nav: swap Add→Back, hide Demo tab
   const mobileDemo = document.getElementById('mobileDemoBtn');
   if (mobileDemo) mobileDemo.style.display = 'none';
+  const mobileAdd = document.getElementById('mobileAddBtn');
+  if (mobileAdd) mobileAdd.style.display = 'none';
+  const mobileBack = document.getElementById('mobileBackBtn');
+  if (mobileBack) mobileBack.style.display = '';
   // Zoom to a comfortable level to show the full span
   zoomIdx = 2; // 40% — fits several years on screen
   PX_PER_MONTH = ZOOM_LEVELS[zoomIdx];
@@ -964,8 +973,13 @@ function exitDemo() {
   document.getElementById('backBtn').style.display  = 'none';
   document.getElementById('addBtn').style.display   = 'flex';
   document.getElementById('demoBanner').classList.remove('visible');
+  // Mobile nav: restore Add, show Demo, hide Back
   const mobileDemo = document.getElementById('mobileDemoBtn');
   if (mobileDemo) mobileDemo.style.display = '';
+  const mobileAdd = document.getElementById('mobileAddBtn');
+  if (mobileAdd) mobileAdd.style.display = '';
+  const mobileBack = document.getElementById('mobileBackBtn');
+  if (mobileBack) mobileBack.style.display = 'none';
   // Restore the user's zoom and scroll position
   zoomIdx = _savedZoomIdx;
   PX_PER_MONTH = ZOOM_LEVELS[zoomIdx];
