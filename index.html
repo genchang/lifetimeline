@@ -41,6 +41,8 @@
     border-bottom: 1px solid var(--border);
     z-index: 100;
     background: var(--bg);
+    position: sticky;
+    top: 0;
   }
   .header-left h1 {
     font-family: 'Playfair Display', serif;
@@ -74,6 +76,13 @@
     flex: 1; position: relative;
     display: flex; flex-direction: column;
     min-height: 0;
+  }
+
+  .fixed-baseline {
+    position: absolute; left: 0; right: 0;
+    height: 1px; background: var(--border);
+    pointer-events: none; z-index: 10;
+    transform: translateY(-1px);
   }
 
   .scroll-track {
@@ -136,7 +145,7 @@
   .event-label.negative .event-text { margin-top: 8px; }
 
   .event-title {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Playfair Display', serif;
     font-size: 13px; font-weight: 400; color: var(--text-muted); line-height: 1.3;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
@@ -687,6 +696,175 @@
   .back-btn { display: none !important; }
   .demo-banner { display: none !important; }
 
+
+  /* ── Cluster / popover system ──────────────────────────────────── */
+
+  /* Audio moon — orbits outside the orb edge */
+  .orb-moon {
+    position: absolute;
+    /* Size the SVG to the orb + orbit clearance on all sides */
+    inset: -14px;
+    pointer-events: none;
+    transform-origin: center;
+  }
+
+  @keyframes moon-orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes orb-border-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  /* Outer border spins on hover using a pseudo overlay */
+  .orb::after {
+    content: '';
+    position: absolute; inset: -2px;
+    border-radius: 50%;
+    border: 1.5px dashed transparent;
+    pointer-events: none;
+    transition: border-color 0.3s;
+  }
+  .event-label.positive .orb::after  { border-color: rgba(109,232,160,0); }
+  .event-label.negative .orb::after  { border-color: rgba(232,109,109,0); }
+  .event-label:hover .orb::after {
+    animation: orb-border-spin 4s linear infinite;
+  }
+  .event-label.positive:hover .orb::after { border-color: rgba(109,232,160,0.5); }
+  .event-label.negative:hover .orb::after { border-color: rgba(232,109,109,0.5); }
+
+  /* Moon orbits on hover */
+  .event-label:hover .orb-moon {
+    animation: moon-orbit 5s linear infinite;
+  }
+
+  /* Inner satellite orbs (replace count badge) */
+  .orb-satellites {
+    position: absolute; inset: 0; pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  /* Ring lines — two layers, counter-rotating on hover */
+  .orb-satellites .rings {
+    transform-origin: 50% 50%;
+    transition: transform 0.6s ease;
+  }
+  .orb-satellites .dots {
+    transform-origin: 50% 50%;
+    transition: transform 0.6s ease, opacity 0.3s;
+  }
+
+  @keyframes orb-spin-cw  { from { transform: rotate(0deg); }   to { transform: rotate(360deg); } }
+  @keyframes orb-spin-ccw { from { transform: rotate(0deg); }   to { transform: rotate(-360deg); } }
+
+  .event-label:hover .orb-satellites .rings {
+    animation: orb-spin-cw 6s linear infinite;
+  }
+  .event-label:hover .orb-satellites .dots {
+    animation: orb-spin-ccw 9s linear infinite;
+  }
+
+  /* Dots brighter + slightly larger on hover */
+  .event-label:hover .orb-satellites circle {
+    filter: brightness(2.2) saturate(1.4);
+    transform-origin: center;
+  }
+
+  /* Stack shadow hint */
+  .orb.is-cluster {
+    box-shadow: none;
+  }
+
+  /* Popover */
+  .orb-popover {
+    position: fixed; z-index: 250;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 0;
+    min-width: 220px; max-width: 280px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    opacity: 0; pointer-events: none;
+    transform: translateY(6px) scale(0.97);
+    transition: opacity 0.18s, transform 0.18s;
+  }
+  .orb-popover.open {
+    opacity: 1; pointer-events: all;
+    transform: translateY(0) scale(1);
+  }
+  .popover-item {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .popover-item:last-child { border-bottom: none; }
+
+  .popover-item-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .popover-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px;
+  }
+  .popover-dot.pos { background: var(--positive); box-shadow: 0 0 5px var(--positive-glow); }
+  .popover-dot.neg { background: var(--negative); box-shadow: 0 0 5px var(--negative-glow); }
+
+  .popover-info { flex: 1; min-width: 0; }
+  .popover-title {
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 400;
+    color: var(--text-muted); line-height: 1.35;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .popover-date {
+    font-size: 11px; color: var(--text-dim); margin-top: 2px;
+  }
+  .popover-desc {
+    font-size: 12px; color: var(--text-muted); opacity: 0.7;
+    line-height: 1.5; margin-top: 2px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .popover-item-actions {
+    display: flex; align-items: center; gap: 6px; margin-top: 4px;
+  }
+  .popover-act {
+    font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500;
+    color: var(--text-dim); background: transparent;
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 4px 9px; cursor: pointer; transition: all 0.15s;
+  }
+  .popover-act:hover { color: var(--text-muted); border-color: var(--text-muted); }
+  .popover-act.del:hover { color: var(--negative); border-color: rgba(232,109,109,0.35); }
+
+  /* Audio player row inside popover */
+  .popover-audio {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2); border-radius: 8px;
+    padding: 6px 10px; margin-top: 4px;
+    border: 1px solid var(--border);
+  }
+  .popover-play-btn {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    color: var(--text); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background 0.15s; font-size: 9px;
+  }
+  .popover-play-btn:hover { background: rgba(255,255,255,0.15); }
+  .popover-play-btn.playing {
+    background: rgba(255,255,255,0.15);
+    animation: pulse-ring 1.4s ease-out infinite;
+  }
+  .popover-audio-label {
+    font-size: 11px; color: var(--text-muted); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; flex: 1;
+  }
+
+  /* Mobile: popover as bottom sheet */
+  @media (max-width: 640px) {
+    .orb-popover {
+      position: fixed !important;
+      left: 0 !important; right: 0 !important; bottom: 0 !important;
+      top: auto !important; max-width: 100% !important; min-width: 0 !important;
+      border-radius: 16px 16px 0 0;
+      max-height: 60dvh; overflow-y: auto;
+      transform: translateY(12px) scale(1) !important;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+    .orb-popover.open { transform: translateY(0) scale(1) !important; }
+  }
   /* Hide mobile toolbar on desktop */
   @media (min-width: 641px) {
     .mobile-toolbar { display: none; }
@@ -740,6 +918,7 @@
       <canvas id="wave"></canvas>
     </div>
   </div>
+  <div class="fixed-baseline" id="fixedBaseline"></div>
   <div class="time-strip" id="timeStrip">
     <div class="time-strip-inner" id="timeStripInner"></div>
   </div>
@@ -968,7 +1147,7 @@ function stopAudio() {
     currentAudio.pause();
     currentAudio.currentTime = 0;
     if (noiseSource) { try { noiseSource.stop(); } catch(e) {} noiseSource = null; }
-    document.querySelectorAll('.orb-play-btn').forEach(b => {
+    document.querySelectorAll('.orb-play-btn, .popover-play-btn').forEach(b => {
       b.classList.remove('playing');
       b.innerHTML = playIcon();
     });
@@ -1072,21 +1251,41 @@ function render() {
   const connH      = Math.round(20 * orbScale);
   const waveAmp    = viewH * 0.36; // max wave amplitude each side of baseline
 
-  // For each month, sum up all orb sizes in that direction (stacked)
+  // For each month-type group, one orb sized by cluster impact
   const posMonths = {}, negMonths = {};
   entries.forEach(e => {
     const key = eToM(e);
-    const orbSize = Math.round((28 + e.impact * 5.5) * orbScale);
-    const textH   = PX_PER_MONTH >= 55 ? 28 : 0;
-    const needed  = orbSize + connH * 2 + textH + 16;
-    if (e.type === 'positive') posMonths[key] = (posMonths[key] || 0) + needed;
-    else                        negMonths[key] = (negMonths[key] || 0) + needed;
+    const bucket = e.type === 'positive' ? posMonths : negMonths;
+    if (!bucket[key]) bucket[key] = [];
+    bucket[key].push(e);
   });
-  const maxPosStack = Object.values(posMonths).reduce((a, b) => Math.max(a, b), 0);
-  const maxNegStack = Object.values(negMonths).reduce((a, b) => Math.max(a, b), 0);
+  function clusterImpactRender(group) {
+    const sorted = [...group].sort((a, b) => b.impact - a.impact);
+    const weights = [1, 0.7, 0.5, 0.3];
+    let total = 0;
+    sorted.forEach((e, i) => { total += e.impact * (weights[Math.min(i, weights.length - 1)]); });
+    return Math.min(10, total);
+  }
+  const textH     = PX_PER_MONTH >= 55 ? 28 : 0;
+  const titleSize = Math.round(Math.max(9, 12 * orbScale));
+  const textBlockH = PX_PER_MONTH >= 55 ? Math.max(16, 28 * orbScale) : 0;
+
+  const maxPosStack = Object.values(posMonths).reduce((acc, group) => {
+    const imp = clusterImpactRender(group);
+    const orbSize = Math.round((28 + imp * 5.5) * orbScale);
+    // Full label height: title block + top connector + orb + bottom connector
+    const labelH = textBlockH + connH + orbSize + connH;
+    return Math.max(acc, labelH + 16);
+  }, 0);
+  const maxNegStack = Object.values(negMonths).reduce((acc, group) => {
+    const imp = clusterImpactRender(group);
+    const orbSize = Math.round((28 + imp * 5.5) * orbScale);
+    const labelH = textBlockH + connH + orbSize + connH;
+    return Math.max(acc, labelH + 16);
+  }, 0);
 
   // Total height = wave above + wave below + orb stacks + padding
-  const PAD = 60;
+  const PAD = 80;
   const aboveBaseline = Math.max(viewH * 0.5, waveAmp + maxPosStack + PAD);
   const belowBaseline = Math.max(viewH * 0.5, waveAmp + maxNegStack + PAD);
   const totalH = aboveBaseline + belowBaseline;
@@ -1094,6 +1293,14 @@ function render() {
 
   inner.style.width  = totalW + 'px';
   inner.style.height = totalH + 'px';
+
+  // Pin the fixed baseline rule to the scroll-track-relative midY
+  const fixedBaseline = document.getElementById('fixedBaseline');
+  window._midY = midY;
+  if (fixedBaseline) {
+    const scrollTrack = document.getElementById('scrollTrack');
+    fixedBaseline.style.top = (scrollTrack.offsetTop + midY - scrollTrack.scrollTop) + 'px';
+  }
 
   // Canvas
   const dpr = window.devicePixelRatio || 1;
@@ -1356,123 +1563,253 @@ function peakY(e, midY, H) {
   return midY + total;
 }
 
-// ── Build floating event labels ────────────────────────────────
+// ── Diminishing-returns capped impact for a group of entries ────
+function clusterImpact(group) {
+  // Sort descending by impact
+  const sorted = [...group].sort((a, b) => b.impact - a.impact);
+  const weights = [1, 0.7, 0.5, 0.3];
+  let total = 0;
+  sorted.forEach((e, i) => { total += e.impact * (weights[Math.min(i, weights.length - 1)]); });
+  return Math.min(10, total);
+}
+
+// ── Build floating event labels (cluster-per-month) ─────────────
 function buildEventLabels(container, midY, H) {
   container.querySelectorAll('.event-label').forEach(el => el.remove());
 
-  const showTitle    = PX_PER_MONTH >= 55;
-  const showConn     = PX_PER_MONTH >= 35;
-  const showActions  = PX_PER_MONTH >= 55;
-  const showPlay     = PX_PER_MONTH >= 35;
-  const orbScale     = Math.max(0.3, Math.min(1, PX_PER_MONTH / 140));
-  const connH        = showConn ? Math.round(20 * orbScale) : 2;
-  const titleSize    = Math.round(Math.max(9, 12 * orbScale));
-  const textBlockH   = showTitle ? Math.max(16, 28 * orbScale) : 0;
-  const GAP          = 8; // gap between stacked orbs
+  const showTitle  = PX_PER_MONTH >= 55;
+  const showConn   = PX_PER_MONTH >= 35;
+  const orbScale   = Math.max(0.3, Math.min(1, PX_PER_MONTH / 140));
+  const connH      = showConn ? Math.round(20 * orbScale) : 2;
+  const titleSize  = Math.round(Math.max(9, 12 * orbScale));
+  const textBlockH = showTitle ? Math.max(16, 28 * orbScale) : 0;
 
-  // Track the outermost used edge per month-key per direction
-  // positive: track topmost used y (grows upward, so stores minimum top px)
-  // negative: track bottommost used y (grows downward, so stores maximum bottom px)
-  const posEdge = {}, negEdge = {};
-
+  // Group entries by month-key + type → one orb per group
+  const groups = {};
   entries.forEach(e => {
-    const cx      = (eToM(e) - tStartM) * PX_PER_MONTH;
-    const py      = peakY(e, midY, H);
-    const isPos   = e.type === 'positive';
-    const orbSize = Math.round((28 + e.impact * 5.5) * orbScale);
-    const key     = eToM(e);
+    const k = `${eToM(e)}-${e.type}`;
+    if (!groups[k]) groups[k] = [];
+    groups[k].push(e);
+  });
 
-    // Total height of this label element
+  Object.values(groups).forEach(group => {
+    const rep     = group[0];
+    const isPos   = rep.type === 'positive';
+    const impact  = clusterImpact(group);
+    const orbSize = Math.round((28 + impact * 5.5) * orbScale);
+    const cx      = (eToM(rep) - tStartM) * PX_PER_MONTH;
+    const hasAudio = group.some(e => e.audio);
+
+    // Highest-impact entry — used for label title
+    const topEntry = [...group].sort((a, b) => b.impact - a.impact)[0];
+
+    const py      = peakY(rep, midY, H);
     const labelH  = textBlockH + connH + orbSize + connH;
-
-    let topPx;
-    if (isPos) {
-      // Default top: element bottom sits at py (wave peak)
-      const defaultTop = py - labelH;
-      // Stack upward: if another event already occupies this slot, push further up
-      const currentEdge = posEdge[key] !== undefined ? posEdge[key] : defaultTop;
-      topPx = Math.min(currentEdge - (currentEdge < defaultTop ? 0 : 0), defaultTop);
-      // Actually: first event uses defaultTop, subsequent ones stack above
-      topPx = posEdge[key] !== undefined ? posEdge[key] - labelH - GAP : defaultTop;
-      posEdge[key] = topPx;
-    } else {
-      // Default top: element top sits at py (wave trough)
-      const defaultTop = py;
-      topPx = negEdge[key] !== undefined ? negEdge[key] + GAP : defaultTop;
-      negEdge[key] = topPx + labelH;
-    }
+    const topPx   = isPos ? Math.max(8, py - labelH) : py;
 
     const el = document.createElement('div');
-    el.className = `event-label ${e.type}`;
+    el.className = `event-label ${rep.type}`;
     el.style.left = cx + 'px';
     el.style.top  = topPx + 'px';
 
-    const actionsHtml = showActions ? `
-      <div class="event-actions">
-        <button class="act-btn" onclick="openEdit(${e.id})">✎</button>
-        <button class="act-btn del" onclick="askDelete(${e.id})">✕</button>
-      </div>` : '';
-
-    // Cap title width to ~1.8x the spacing between months so it won't overlap neighbours
+    const isCluster = group.length > 1;
     const maxTitleWidth = Math.round(Math.max(80, PX_PER_MONTH * 1.8));
 
+    // Audio moon — SVG that orbits just outside the orb edge
+    // The SVG is inset:-14px so its centre aligns with orb centre.
+    // Moon sits at top (270°) of an orbit radius = orbSize/2 + 10px
+    const moonOrbitR = orbSize / 2 + 10;
+    const moonSvgSize = orbSize + 28; // inset:-14px each side
+    const moonCx = moonSvgSize / 2;
+    const moonCy = moonSvgSize / 2;
+    // Moon at top of its orbit
+    const moonX = moonCx;
+    const moonY = moonCy - moonOrbitR;
+    const audioDotHtml = hasAudio ? `<svg class="orb-moon" viewBox="0 0 ${moonSvgSize} ${moonSvgSize}" xmlns="http://www.w3.org/2000/svg"><circle cx="${moonX.toFixed(1)}" cy="${moonY.toFixed(1)}" r="4" fill="rgba(255,255,255,0.7)" /><circle cx="${moonX.toFixed(1)}" cy="${moonY.toFixed(1)}" r="4" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/></svg>` : '';
+    // Inner satellite orbs — arranged on concentric rings inside the outer orb
+    // Each ring sits at a different radius; dots on each ring encode impact via size+opacity
+    function makeSatellites(group, orbSize, isPos) {
+      if (group.length === 0) return '';
+      const cx = orbSize / 2, cy = orbSize / 2;
+      const baseColour = isPos ? '109,232,160' : '232,109,109';
+
+      // Sort by impact descending — highest impact gets innermost ring
+      const sorted = [...group].sort((a, b) => b.impact - a.impact);
+
+      // Distribute into concentric rings: 1, then up to 5, then up to 8...
+      const ringCapacity = [1, 5, 8, 12];
+      const rings = [];
+      let idx = 0;
+      for (let ri = 0; ri < ringCapacity.length && idx < sorted.length; ri++) {
+        const cap = ringCapacity[ri];
+        rings.push(sorted.slice(idx, idx + cap));
+        idx += cap;
+      }
+
+      // Ring radii as fraction of half-orbSize (keep within ~88% of orb)
+      const maxR = orbSize * 0.44;
+      // Innermost ring is tightest, outermost near edge
+      // e.g. 4 rings → radii at 15%, 38%, 62%, 85% of maxR
+      const ringRadii = rings.map((_, ri) => {
+        const steps = rings.length;
+        return maxR * (0.18 + (ri / Math.max(steps - 1, 1)) * 0.72);
+      });
+
+      const dots = rings.flatMap((ring, ri) => {
+        const r0 = ringRadii[ri];
+        return ring.map((e, i) => {
+          const angle = ring.length === 1
+            ? -Math.PI / 2  // single dot sits at top
+            : (i / ring.length) * Math.PI * 2 - Math.PI / 2;
+          const sx = cx + r0 * Math.cos(angle);
+          const sy = cy + r0 * Math.sin(angle);
+          // Dot radius: impact 1→1.5, impact 10→4px
+          const dr = 1.5 + (e.impact / 10) * 2.5;
+          // Opacity: impact 1→0.45 (visible), impact 10→0.85
+          const opacity = 0.45 + (e.impact / 10) * 0.40;
+          return `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="${dr.toFixed(1)}" fill="rgba(${baseColour},${opacity.toFixed(2)})"/>`;
+        });
+      }).join('');
+
+      // Draw faint orbit ring lines for each ring level
+      const ringLines = rings.map((_, ri) => {
+        const r0 = ringRadii[ri];
+        return `<circle cx="${cx}" cy="${cy}" r="${r0.toFixed(1)}" fill="none" stroke="rgba(${baseColour},0.22)" stroke-width="0.75"/>`;
+      }).join('');
+
+      return `<svg class="orb-satellites" viewBox="0 0 ${orbSize} ${orbSize}" xmlns="http://www.w3.org/2000/svg"><g class="rings">${ringLines}</g><g class="dots">${dots}</g></svg>`;
+    }
+
+    const satellitesHtml = group.length > 1 ? makeSatellites(group, orbSize, isPos) : '';
+
+    // Label: title of highest-impact entry
     const textHtml = showTitle ? `
       <div class="event-text">
-        <div class="event-title" style="font-size:${titleSize}px;max-width:${maxTitleWidth}px">${esc(e.title)}</div>
+        <div class="event-title" style="font-size:${titleSize}px;max-width:${maxTitleWidth}px">${esc(topEntry.title)}</div>
       </div>` : '';
 
-    const playHtml = (e.audio && showPlay) ? `
-      <div class="orb-play">
-        <button class="orb-play-btn" style="width:${Math.max(20,28*orbScale)}px;height:${Math.max(20,28*orbScale)}px" onclick="event.stopPropagation();toggleAudio(${e.id},this)">${playIcon()}</button>
-      </div>` : '';
-
-    const connStyle = isPos
-      ? `background:linear-gradient(to bottom,rgba(109,232,160,0.25),rgba(109,232,160,0.0))`
-      : `background:linear-gradient(to bottom,rgba(232,109,109,0.25),rgba(232,109,109,0.0))`;
+    const connStylePos = `background:linear-gradient(to bottom,rgba(109,232,160,0.25),rgba(109,232,160,0.0))`;
+    const connStyleNeg = `background:linear-gradient(to bottom,rgba(232,109,109,0.25),rgba(232,109,109,0.0))`;
+    const connStyle = isPos ? connStylePos : connStyleNeg;
 
     if (isPos) {
       el.innerHTML = `
         ${textHtml}
         <div class="event-connector" style="height:${connH}px"></div>
-        <div class="orb" style="width:${orbSize}px;height:${orbSize}px">${actionsHtml}${playHtml}</div>
+        <div class="orb${isCluster ? ' is-cluster' : ''}" style="width:${orbSize}px;height:${orbSize}px">${satellitesHtml}${audioDotHtml}</div>
         <div style="height:${connH}px;width:1px;${connStyle}"></div>`;
     } else {
       el.innerHTML = `
         <div class="event-connector" style="height:${connH}px"></div>
-        <div class="orb" style="width:${orbSize}px;height:${orbSize}px">${actionsHtml}${playHtml}</div>
+        <div class="orb${isCluster ? ' is-cluster' : ''}" style="width:${orbSize}px;height:${orbSize}px">${satellitesHtml}${audioDotHtml}</div>
         ${textHtml}`;
     }
 
-    // Freeze actions visible after mouse leaves — gives time to move to buttons
-    let leaveTimer = null;
-    const cancelLeave = () => clearTimeout(leaveTimer);
-    const scheduleLeave = () => {
-      leaveTimer = setTimeout(() => {
-        // Play bounce-back animation, then hide
-        el.classList.add('actions-hiding');
-        el.classList.remove('actions-visible');
-        setTimeout(() => el.classList.remove('actions-hiding'), 280);
-      }, 600);
-    };
-
-    el.addEventListener('mouseenter', () => {
-      cancelLeave();
-      el.classList.remove('actions-hiding');
-      el.classList.add('actions-visible');
-    });
-    el.addEventListener('mouseleave', scheduleLeave);
-
-    // Also wire up after innerHTML is set so we can grab .event-actions
-    requestAnimationFrame(() => {
-      const actions = el.querySelector('.event-actions');
-      if (actions) {
-        actions.addEventListener('mouseenter', cancelLeave);
-        actions.addEventListener('mouseleave', scheduleLeave);
-      }
+    // Click → open popover
+    el.querySelector('.orb').addEventListener('click', ev => {
+      ev.stopPropagation();
+      openPopover(group, el.querySelector('.orb'), rep.type);
     });
 
     container.appendChild(el);
   });
+}
+
+// ── Popover ──────────────────────────────────────────────────────
+let _popoverEl = null;
+let _popoverCloseHandler = null;
+
+function openPopover(group, anchorEl, type) {
+  closePopover();
+
+  const pop = document.createElement('div');
+  pop.className = 'orb-popover';
+  pop.id = 'orbPopover';
+
+  // Sort: impact desc, then id asc (insertion/date order as tiebreak)
+  const sorted = [...group].sort((a, b) => b.impact - a.impact || a.id - b.id);
+
+  // Orb size for each entry (unscaled — relative indicator, max impact=10)
+  const maxImpact = sorted[0].impact;
+
+  pop.innerHTML = sorted.map((e, idx) => {
+    const dateStr  = (e.month ? MONTHS_S[e.month] + ' ' : '') + e.year;
+    const descHtml = e.desc ? `<div class="popover-desc">${esc(e.desc)}</div>` : '';
+    const audioHtml = e.audio ? `
+      <div class="popover-audio">
+        <button class="popover-play-btn" id="ppbtn-${e.id}" onclick="togglePopoverAudio(${e.id},this)">${playIcon()}</button>
+        <span class="popover-audio-label">${esc(e.audioName || 'Memory audio')}</span>
+      </div>` : '';
+
+    // Orb size indicator: small circle scaled to impact, max 20px diameter
+    const indicatorSize = Math.round(8 + (e.impact / 10) * 12); // 8–20px
+    const col = e.type === 'positive' ? 'rgba(109,232,160,0.5)' : 'rgba(232,109,109,0.5)';
+    const colBorder = e.type === 'positive' ? 'rgba(109,232,160,0.7)' : 'rgba(232,109,109,0.7)';
+    const orbIndicatorHtml = `<div class="popover-orb-indicator" style="width:${indicatorSize}px;height:${indicatorSize}px;background:${col};border:1.5px solid ${colBorder};border-radius:50%;flex-shrink:0;margin-right:2px;" title="Impact ${e.impact}"></div>`;
+
+    return `
+      <div class="popover-item">
+        <div class="popover-item-header">
+          ${orbIndicatorHtml}
+          <div class="popover-info">
+            <div class="popover-title">${esc(e.title)}</div>
+            <div class="popover-date">${dateStr} · impact ${e.impact}</div>
+          </div>
+        </div>
+        ${descHtml}
+        ${audioHtml}
+        <div class="popover-item-actions">
+          <button class="popover-act" onclick="openEdit(${e.id});closePopover()">Edit</button>
+          <button class="popover-act del" onclick="askDelete(${e.id});closePopover()">Remove</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.body.appendChild(pop);
+  _popoverEl = pop;
+
+  // Position: positive orbs open below (they sit near top of viewport),
+  // negative orbs open above (they sit near bottom)
+  const rect = anchorEl.getBoundingClientRect();
+  const isMobile = window.innerWidth <= 640;
+  if (!isMobile) {
+    const popW = 260;
+    let left = rect.left + rect.width / 2 - popW / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - popW - 8));
+    if (type === 'positive') {
+      pop.style.top = (rect.bottom + 8) + 'px';
+    } else {
+      pop.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+    }
+    pop.style.left = left + 'px';
+    pop.style.width = popW + 'px';
+  }
+
+  requestAnimationFrame(() => pop.classList.add('open'));
+
+  // Close on outside click
+  _popoverCloseHandler = (e) => {
+    if (!pop.contains(e.target)) closePopover();
+  };
+  setTimeout(() => document.addEventListener('click', _popoverCloseHandler), 10);
+}
+
+function closePopover() {
+  if (_popoverEl) {
+    _popoverEl.classList.remove('open');
+    const el = _popoverEl;
+    setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 200);
+    _popoverEl = null;
+  }
+  if (_popoverCloseHandler) {
+    document.removeEventListener('click', _popoverCloseHandler);
+    _popoverCloseHandler = null;
+  }
+}
+
+function togglePopoverAudio(id, btn) {
+  toggleAudio(id, btn);
+  // Sync btn appearance after toggleAudio (it mutates the passed btn)
 }
 
 // ── Time strip (no-op — axis drawn on canvas) ──────────────────
@@ -1548,6 +1885,12 @@ track.addEventListener('mousedown', e => { dragging = true; dragX0 = e.pageX; dr
 document.addEventListener('mousemove', e => { if (dragging) track.scrollLeft = dragSL0 - (e.pageX - dragX0); });
 document.addEventListener('mouseup', () => { dragging = false; });
 track.addEventListener('scroll', updateFab, { passive: true });
+track.addEventListener('scroll', () => {
+  const fb = document.getElementById('fixedBaseline');
+  if (fb && window._midY !== undefined) {
+    fb.style.top = (track.offsetTop + window._midY - track.scrollTop) + 'px';
+  }
+}, { passive: true });
 
 // ── Audio state ──────────────────────────────────────────────────
 let pendingAudioB64 = null; // base64 string staged in the modal
@@ -1673,7 +2016,7 @@ function toggleAudio(id, btn) {
     currentAudio.pause();
     currentAudio.currentTime = 0;
     if (noiseSource) { try { noiseSource.stop(); } catch(e) {} noiseSource = null; }
-    document.querySelectorAll('.orb-play-btn').forEach(b => {
+    document.querySelectorAll('.orb-play-btn, .popover-play-btn').forEach(b => {
       b.classList.remove('playing');
       b.innerHTML = playIcon();
     });
@@ -1783,7 +2126,7 @@ function confirmDelete() { entries = entries.filter(e => e.id !== deletingId); s
 
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('modalOverlay')) closeModal(); });
 document.getElementById('confirmOverlay').addEventListener('click', e => { if (e.target === document.getElementById('confirmOverlay')) closeConfirm(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeVideoModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeVideoModal(); closePopover(); } });
 
 // ── Onboarding ───────────────────────────────────────────────────
 function openOnboarding() {
