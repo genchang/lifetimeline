@@ -1009,7 +1009,7 @@ function exitDemo() {
   _savedEntries = null;
   document.getElementById('demoBtn').style.display = 'flex';
   document.getElementById('backBtn').style.display  = 'none';
-  document.getElementById('addBtn').style.display   = 'flex';
+  if (window.innerWidth > 640) document.getElementById('addBtn').style.display = 'flex';
   document.getElementById('demoBanner').classList.remove('visible');
   // Mobile nav: Home tab → active again, Demo tab → clickable, FAB enabled
   const mobileHomeTab = document.getElementById('mobileHomeTab');
