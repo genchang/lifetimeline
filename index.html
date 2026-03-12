@@ -611,8 +611,10 @@
     .demo-banner { font-size: 11px; padding: 6px 16px; }
   }
 
-  /* Desktop: hide mobile toolbar */
-  .mobile-toolbar { display: none; }
+  /* Hide mobile toolbar on desktop */
+  @media (min-width: 641px) {
+    .mobile-toolbar { display: none; }
+  }
 </style>
 </head>
 <body>
