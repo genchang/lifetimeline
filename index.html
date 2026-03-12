@@ -136,9 +136,9 @@
   .event-label.negative .event-text { margin-top: 8px; }
 
   .event-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 14px; font-weight: 400; color: var(--text); line-height: 1.3;
-    white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; font-weight: 300; color: var(--text); line-height: 1.3;
+    letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .event-desc {
     font-size: 11px; color: var(--text-muted); margin-top: 3px;
@@ -509,6 +509,113 @@
   body.waveonly-mode .event-label { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
   body.waveonly-mode .time-strip { opacity: 0; transition: opacity 0.3s; }
   .event-label { transition: opacity 0.3s; }
+
+  /* ── Mobile responsive ─────────────────────────────────────── */
+  @media (max-width: 640px) {
+    body { height: 100dvh; }
+
+    header {
+      padding: 16px 20px 14px;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .header-left h1 { font-size: 20px; }
+    .header-left p { display: none; }
+
+    .header-right {
+      gap: 8px;
+      flex-wrap: nowrap;
+      width: 100%;
+      justify-content: flex-end;
+    }
+
+    /* Hide legend and waveform btn from header on mobile — moved to bottom bar */
+    .legend { display: none; }
+    .waveonly-btn { display: none; }
+    .demo-btn { display: none; }
+    .back-btn { font-size: 12px; padding: 8px 12px; gap: 5px; }
+
+    /* Compact zoom controls */
+    .zoom-controls { padding: 3px 8px; gap: 2px; }
+    .zoom-btn { width: 32px; height: 32px; font-size: 18px; }
+    .zoom-level { min-width: 28px; font-size: 10px; }
+
+    /* Add button — icon only on mobile */
+    .add-btn { padding: 9px 14px; font-size: 12px; gap: 6px; }
+    .add-btn .add-label { display: none; }
+
+    /* Hide scroll arrows — use swipe instead */
+    .scroll-hint { display: none; }
+
+    /* More canvas height since no side arrows */
+    .main { touch-action: pan-x; }
+
+    /* Bottom toolbar */
+    .mobile-toolbar {
+      display: flex;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 150;
+      background: rgba(14,15,20,0.95);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      padding: 10px 20px max(10px, env(safe-area-inset-bottom));
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .mobile-tool-btn {
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      background: transparent; border: none;
+      color: var(--text-muted); font-family: 'DM Sans', sans-serif;
+      font-size: 10px; font-weight: 500; letter-spacing: 0.04em;
+      cursor: pointer; padding: 6px 4px; border-radius: 10px;
+      transition: all 0.15s;
+    }
+    .mobile-tool-btn svg { opacity: 0.65; }
+    .mobile-tool-btn:active, .mobile-tool-btn.active { color: var(--text); background: var(--surface2); }
+    .mobile-tool-btn:active svg, .mobile-tool-btn.active svg { opacity: 1; }
+    .mobile-tool-btn.add-mobile { color: var(--positive); }
+    .mobile-tool-btn.add-mobile svg { opacity: 0.85; }
+
+    /* Fab moves up above toolbar */
+    .fab-now { bottom: calc(72px + max(10px, env(safe-area-inset-bottom))); right: 16px; font-size: 12px; padding: 8px 14px 8px 12px; }
+
+    /* Modals full-screen on mobile */
+    .modal-overlay { align-items: flex-end; }
+    .modal {
+      border-radius: 20px 20px 0 0;
+      max-width: 100%;
+      padding: 28px 24px max(24px, env(safe-area-inset-bottom));
+      max-height: 90dvh;
+      overflow-y: auto;
+    }
+
+    .onboard-overlay { align-items: flex-end; }
+    .onboard-modal {
+      border-radius: 20px 20px 0 0;
+      max-width: 100%;
+      padding: 32px 24px max(24px, env(safe-area-inset-bottom));
+      max-height: 92dvh;
+      overflow-y: auto;
+    }
+    .onboard-modal h2 { font-size: 22px; }
+    .onboard-legend { grid-template-columns: 1fr; }
+
+    /* Larger orb touch targets */
+    .orb { min-width: 36px; min-height: 36px; }
+
+    /* Demo banner smaller */
+    .demo-banner { font-size: 11px; padding: 6px 16px; }
+
+    /* Push canvas content above bottom toolbar */
+    #mainArea { padding-bottom: 64px; }
+  }
+
+  /* Desktop: hide mobile toolbar */
+  .mobile-toolbar { display: none; }
 </style>
 </head>
 <body>
@@ -534,7 +641,7 @@
     </div>
     <button class="add-btn" id="addBtn" onclick="openModal()">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      Add experience
+      <span class="add-label">Add experience</span>
     </button>
     <button class="waveonly-btn" id="waveonlyBtn" onclick="toggleWaveOnly()" title="Show waveform only">
       <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
@@ -578,6 +685,30 @@
   </svg>
   Back to now
 </button>
+
+<!-- Mobile bottom toolbar -->
+<div class="mobile-toolbar">
+  <button class="mobile-tool-btn add-mobile" onclick="openModal()">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3v14M3 10h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    Add
+  </button>
+  <button class="mobile-tool-btn" id="mobileZoomOut" onclick="setZoom(zoomIdx-1)">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M6 9h6M15 15l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Zoom out
+  </button>
+  <button class="mobile-tool-btn" id="mobileZoomIn" onclick="setZoom(zoomIdx+1)">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M6 9h6M9 6v6M15 15l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Zoom in
+  </button>
+  <button class="mobile-tool-btn" id="mobileWaveonly" onclick="toggleWaveOnly()">
+    <svg width="20" height="14" viewBox="0 0 20 14" fill="none"><path d="M1 7 Q3.5 1 6 7 Q8.5 13 11 7 Q13.5 1 16 7 Q18.5 13 19 7" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Wave
+  </button>
+  <button class="mobile-tool-btn" id="mobileDemoBtn" onclick="enterDemo()">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 4l12 6-12 6V4z" fill="currentColor"/></svg>
+    Demo
+  </button>
+</div>
 
 <!-- Modal -->
 <div class="modal-overlay" id="modalOverlay">
@@ -811,6 +942,8 @@ function enterDemo(skipOnboarding = false) {
   document.getElementById('backBtn').style.display  = 'flex';
   document.getElementById('addBtn').style.display   = 'none';
   document.getElementById('demoBanner').classList.add('visible');
+  const mobileDemo = document.getElementById('mobileDemoBtn');
+  if (mobileDemo) mobileDemo.style.display = 'none';
   // Zoom to a comfortable level to show the full span
   zoomIdx = 2; // 40% — fits several years on screen
   PX_PER_MONTH = ZOOM_LEVELS[zoomIdx];
@@ -840,6 +973,8 @@ function exitDemo() {
   document.getElementById('backBtn').style.display  = 'none';
   document.getElementById('addBtn').style.display   = 'flex';
   document.getElementById('demoBanner').classList.remove('visible');
+  const mobileDemo = document.getElementById('mobileDemoBtn');
+  if (mobileDemo) mobileDemo.style.display = '';
   // Restore the user's zoom and scroll position
   zoomIdx = _savedZoomIdx;
   PX_PER_MONTH = ZOOM_LEVELS[zoomIdx];
@@ -1222,7 +1357,7 @@ function buildEventLabels(container, midY, H) {
   const showPlay     = PX_PER_MONTH >= 35;
   const orbScale     = Math.max(0.3, Math.min(1, PX_PER_MONTH / 140));
   const connH        = showConn ? Math.round(20 * orbScale) : 2;
-  const titleSize    = Math.round(Math.max(9, 14 * orbScale));
+  const titleSize    = Math.round(Math.max(9, 12 * orbScale));
   const textBlockH   = showTitle ? Math.max(16, 28 * orbScale) : 0;
   const GAP          = 8; // gap between stacked orbs
 
@@ -1269,9 +1404,12 @@ function buildEventLabels(container, midY, H) {
         <button class="act-btn del" onclick="askDelete(${e.id})">✕</button>
       </div>` : '';
 
+    // Cap title width to ~1.8x the spacing between months so it won't overlap neighbours
+    const maxTitleWidth = Math.round(Math.max(80, PX_PER_MONTH * 1.8));
+
     const textHtml = showTitle ? `
       <div class="event-text">
-        <div class="event-title" style="font-size:${titleSize}px">${esc(e.title)}</div>
+        <div class="event-title" style="font-size:${titleSize}px;max-width:${maxTitleWidth}px">${esc(e.title)}</div>
       </div>` : '';
 
     const playHtml = (e.audio && showPlay) ? `
@@ -1676,6 +1814,8 @@ function toggleWaveOnly() {
   const btn = document.getElementById('waveonlyBtn');
   btn.classList.toggle('active', active);
   btn.title = active ? 'Show events' : 'Show waveform only';
+  const mobileBtn = document.getElementById('mobileWaveonly');
+  if (mobileBtn) mobileBtn.classList.toggle('active', active);
   render();
 }
 
