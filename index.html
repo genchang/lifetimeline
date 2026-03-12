@@ -512,9 +512,7 @@
 
   /* ── Mobile responsive ─────────────────────────────────────── */
   @media (max-width: 640px) {
-    body { height: 100dvh; }
-
-    header {
+    body { height: 100dvh; padding-bottom: calc(64px + max(0px, env(safe-area-inset-bottom))); }
       padding: 16px 20px 14px;
       flex-wrap: wrap;
       gap: 12px;
@@ -609,9 +607,6 @@
 
     /* Demo banner smaller */
     .demo-banner { font-size: 11px; padding: 6px 16px; }
-
-    /* Push canvas content above bottom toolbar */
-    #mainArea { padding-bottom: 64px; }
   }
 
   /* Desktop: hide mobile toolbar */
@@ -1046,7 +1041,7 @@ function render() {
   const canvas  = document.getElementById('wave');
   const stripIn = document.getElementById('timeStripInner');
 
-  const viewH = track.clientHeight;
+  const viewH = track.clientHeight || (window.innerHeight - document.querySelector('header').offsetHeight - 72);
 
   // Time window: pad 8 months either side of data range
   const nowF = nowM();
@@ -1804,8 +1799,8 @@ function closeOnboardingDemo() {
   closeOnboarding();
 }
 
-// Show on first visit
-openOnboarding();
+// Show on first visit only (no saved entries)
+if (entries.length === 0) openOnboarding();
 
 // ── Waveform-only mode ───────────────────────────────────────────
 function toggleWaveOnly() {
@@ -1839,6 +1834,8 @@ populateYearDropdown();
 window.addEventListener('resize', render);
 render();
 requestAnimationFrame(scrollToDefault);
+// Re-render after layout fully settles (important on mobile where clientHeight may be 0 initially)
+setTimeout(() => { render(); }, 100);
 </script>
 </body>
 </html>
