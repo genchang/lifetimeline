@@ -2495,9 +2495,11 @@ document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, 
 
 window.addEventListener('resize', render);
 render();
-requestAnimationFrame(scrollToDefault);
+// On mobile: centre on "now" at load; on desktop: show 6 months before now
+const isMobile = window.matchMedia('(max-width: 640px)').matches;
+requestAnimationFrame(isMobile ? scrollToNowCentre : scrollToDefault);
 // Re-render after layout fully settles (important on mobile where clientHeight may be 0 initially)
-setTimeout(() => { render(); }, 100);
+setTimeout(() => { render(); if (isMobile) scrollToNowCentre(); }, 150);
 </script>
 </body>
 </html>
