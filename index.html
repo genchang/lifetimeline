@@ -703,7 +703,7 @@
   /* Audio moon canvas — orbits outside the orb edge */
   .orb-moon-canvas {
     position: absolute;
-    pointer-events: none;
+    pointer-events: none !important;
     border-radius: 50%;
     opacity: 1;
   }
@@ -730,7 +730,7 @@
 
   /* Inner satellite orbs (replace count badge) */
   .orb-satellites {
-    position: absolute; inset: 0; pointer-events: none;
+    position: absolute; inset: 0; pointer-events: none !important;
     transition: opacity 0.3s;
   }
 
@@ -1907,31 +1907,32 @@ function stopRingAnims(label) {
 }
 
 function bindMoonCanvases(container) {
-  // Unified enter/leave handlers with both mouse and touch support
-  function bindHover(label, onEnter, onLeave) {
-    label.addEventListener('mouseenter', onEnter);
-    label.addEventListener('mouseleave', onLeave);
-    // Touch: touchstart = enter, touchend/touchcancel = leave
-    label.addEventListener('touchstart', (e) => { onEnter(); }, { passive: true });
-    label.addEventListener('touchend',   (e) => { onLeave(); }, { passive: true });
-    label.addEventListener('touchcancel',(e) => { onLeave(); }, { passive: true });
+  function bindHover(trigger, onEnter, onLeave) {
+    trigger.addEventListener('mouseenter', onEnter);
+    trigger.addEventListener('mouseleave', onLeave);
+    trigger.addEventListener('touchstart', onEnter, { passive: true });
+    trigger.addEventListener('touchend',   onLeave, { passive: true });
+    trigger.addEventListener('touchcancel',onLeave, { passive: true });
   }
 
   container.querySelectorAll('.orb-moon-canvas').forEach(canvas => {
     const label = canvas.closest('.event-label');
-    if (!label) return;
+    const orb   = canvas.closest('.orb');
+    if (!label || !orb) return;
     drawMoonStatic(canvas);
-    bindHover(label,
+    // Bind on the orb itself — avoids canvas overflow / label bounds issues
+    bindHover(orb,
       () => { label.classList.add('is-hovered');    startMoonAnim(canvas); startRingAnims(label); },
       () => { label.classList.remove('is-hovered'); stopMoonAnim(canvas);  stopRingAnims(label);  }
     );
   });
 
-  // Orbs without audio still need ring hover + border spin
+  // Orbs without audio — ring hover + border spin only
   container.querySelectorAll('.event-label').forEach(label => {
     if (label.querySelector('.orb-moon-canvas')) return; // already handled above
-    if (!label.querySelector('.sat-dot') && !label.querySelector('.orb-satellites')) return;
-    bindHover(label,
+    const orb = label.querySelector('.orb');
+    if (!orb || !label.querySelector('.sat-dot')) return;
+    bindHover(orb,
       () => { label.classList.add('is-hovered');    startRingAnims(label); },
       () => { label.classList.remove('is-hovered'); stopRingAnims(label);  }
     );
