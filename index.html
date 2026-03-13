@@ -247,6 +247,9 @@
     padding: 24px 16px;
     opacity: 0; pointer-events: none; transition: opacity 0.25s;
     box-sizing: border-box;
+    touch-action: pan-y; /* allow native vertical scroll immediately */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
   .modal-overlay.open { opacity: 1; pointer-events: all; }
   .modal {
@@ -554,6 +557,7 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
+      touch-action: pan-y;
     }
     .modal {
       max-width: 100%;
@@ -2443,22 +2447,10 @@ function confirmDelete() { entries = entries.filter(e => e.id !== deletingId); s
 
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('modalOverlay')) closeModal(); });
 
-// Mobile: prevent page scroll/pull-to-refresh when modal is open
-// Allow touch scroll only within the modal card itself
-const _modalOverlay = document.getElementById('modalOverlay');
-const _modal = _modalOverlay.querySelector('.modal');
-
-_modalOverlay.addEventListener('touchmove', function(e) {
-  // If the touch is inside the scrollable modal, allow it
-  if (_modal.contains(e.target)) {
-    // Only allow if modal is actually scrollable
-    const canScroll = _modal.scrollHeight > _modal.clientHeight;
-    if (!canScroll) e.preventDefault();
-    // If scrollable, let it scroll but don't let it reach the page
-    return;
-  }
-  // Touch is on the backdrop — block completely
-  e.preventDefault();
+// Mobile: block backdrop touches but let the overlay scroll natively via CSS touch-action
+// We only need to block touches that land directly on the backdrop (not inside the modal)
+document.getElementById('modalOverlay').addEventListener('touchstart', function(e) {
+  if (e.target === this) e.preventDefault(); // backdrop tap — block pull-to-refresh
 }, { passive: false });
 document.getElementById('confirmOverlay').addEventListener('click', e => { if (e.target === document.getElementById('confirmOverlay')) closeConfirm(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeVideoModal(); closePopover(); } });
