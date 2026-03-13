@@ -271,6 +271,14 @@
     color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
     padding: 11px 14px; outline: none; transition: border-color 0.2s; resize: none;
   }
+  .form-row select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 52px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(255,255,255,0.5)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 18px center;
+  }
   .form-row input:focus, .form-row textarea:focus, .form-row select:focus { border-color: var(--text-muted); }
   .form-row textarea { min-height: 80px; }
   .form-row select option { background: var(--surface2); }
@@ -307,10 +315,17 @@
   }
   .btn-cancel:hover { border-color: var(--text-muted); color: var(--text); }
   .btn-save {
-    flex: 2; padding: 12px; background: var(--text); border: none; border-radius: 10px;
-    color: var(--bg); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+    flex: 2; padding: 12px; background: var(--text); border: 1px solid transparent; border-radius: 10px;
+    color: var(--bg); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s, background 0.2s, color 0.2s, border-color 0.2s;
   }
-  .btn-save:hover { opacity: 0.88; }
+  .btn-save:hover:not(:disabled) { opacity: 0.88; }
+  .btn-save:disabled {
+    background: transparent;
+    color: rgba(255,255,255,0.18);
+    border-color: rgba(255,255,255,0.12);
+    cursor: default;
+    opacity: 1;
+  }
   .btn-modal-delete {
     background: none; border: none; cursor: pointer;
     font-family: 'DM Sans', sans-serif; font-size: 12.5px;
@@ -330,12 +345,14 @@
   .audio-upload-area.has-file { border-color: rgba(109,232,160,0.4); color: var(--positive); }
   .audio-upload-area svg { flex-shrink: 0; opacity: 0.6; }
   .audio-clear {
-    margin-left: auto; font-size: 11px; color: var(--text-dim);
-    cursor: pointer; padding: 2px 6px; border-radius: 4px;
-    border: 1px solid var(--border); background: transparent;
-    transition: all 0.15s;
+    margin-left: auto; flex-shrink: 0;
+    cursor: pointer; padding: 5px; border-radius: 6px;
+    border: none; background: transparent;
+    color: rgba(255,255,255,0.45);
+    display: flex; align-items: center; justify-content: center;
+    transition: color 0.15s;
   }
-  .audio-clear:hover { color: var(--negative); border-color: rgba(232,109,109,0.3); }
+  .audio-clear:hover { color: rgba(255,255,255,0.9); }
 
   /* Play button inside orb */
   .orb-play {
@@ -580,8 +597,8 @@
       -webkit-appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 36px;
+      background-position: right 18px center;
+      padding-right: 52px;
     }
 
     header {
@@ -1071,13 +1088,13 @@
           <path d="M8 1v9M5 4l3-3 3 3M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span id="audioFileName">Upload an mp3 file…</span>
-        <button class="audio-clear" id="audioClearBtn" style="display:none" onclick="clearAudio(event)">✕ remove</button>
+        <button class="audio-clear" id="audioClearBtn" style="display:none" onclick="clearAudio(event)" title="Remove audio"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
       </div>
       <input type="file" id="inputAudio" accept="audio/mp3,audio/mpeg,.mp3" style="display:none" onchange="handleAudioUpload(event)">
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-      <button class="btn-save" onclick="saveEntry()">Save experience</button>
+      <button class="btn-save" id="btnSave" onclick="saveEntry()">Save experience</button>
     </div>
     <div id="modalDeleteRow" style="display:none;text-align:left;margin-top:22px">
       <button class="btn-modal-delete" onclick="askDelete(editingId);closeModal()">Delete this memory</button>
@@ -2222,10 +2239,11 @@ function handleAudioUpload(event) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = ev => {
-    pendingAudioB64 = ev.target.result; // full data URL
+    pendingAudioB64 = ev.target.result;
     document.getElementById('audioFileName').textContent = file.name;
     document.getElementById('audioUploadArea').classList.add('has-file');
     document.getElementById('audioClearBtn').style.display = '';
+    checkModalDirty();
   };
   reader.readAsDataURL(file);
 }
@@ -2237,6 +2255,7 @@ function clearAudio(ev) {
   document.getElementById('audioFileName').textContent = 'Upload an mp3 file…';
   document.getElementById('audioUploadArea').classList.remove('has-file');
   document.getElementById('audioClearBtn').style.display = 'none';
+  checkModalDirty();
 }
 
 function resetAudioUI() {
@@ -2372,6 +2391,37 @@ function stopIcon() {
 }
 
 // ── Modal ────────────────────────────────────────────────────────
+let _modalSnapshot = null; // snapshot of entry state when edit modal opened
+
+function _getModalValues() {
+  return {
+    title:  document.getElementById('inputTitle').value.trim(),
+    desc:   document.getElementById('inputDesc').value.trim(),
+    month:  document.getElementById('inputMonth').value,
+    year:   document.getElementById('inputYear').value,
+    impact: document.getElementById('inputImpact').value,
+    type:   currentType,
+    audio:  pendingAudioB64 || null,
+  };
+}
+
+function checkModalDirty() {
+  const btn = document.getElementById('btnSave');
+  const title = document.getElementById('inputTitle').value.trim();
+  const year  = parseInt(document.getElementById('inputYear').value);
+  const requiredOk = !!title && year >= 1960 && year <= 2099;
+
+  if (!_modalSnapshot) {
+    // New entry — enable only when required fields are filled
+    btn.disabled = !requiredOk;
+    return;
+  }
+  // Edit entry — enable only when required fields valid AND something changed
+  const cur = _getModalValues();
+  const dirty = Object.keys(_modalSnapshot).some(k => String(cur[k]) !== String(_modalSnapshot[k]));
+  btn.disabled = !(requiredOk && dirty);
+}
+
 function openModal(id = null) {
   editingId = id;
   const now = new Date();
@@ -2387,7 +2437,6 @@ function openModal(id = null) {
     document.getElementById('inputYear').value = e.year;
     document.getElementById('inputImpact').value = e.impact;
     setType(e.type);
-    // Show existing audio if any
     if (e.audio) {
       pendingAudioB64 = e.audio;
       document.getElementById('audioFileName').textContent = e.audioName || 'Audio attached';
@@ -2405,6 +2454,16 @@ function openModal(id = null) {
   }
   updateImpact();
   document.getElementById('modalDeleteRow').style.display = id !== null ? 'block' : 'none';
+
+  // Snapshot after all fields set — used to detect changes
+  if (id !== null) {
+    _modalSnapshot = _getModalValues();
+    document.getElementById('btnSave').disabled = true;
+  } else {
+    _modalSnapshot = null;
+    document.getElementById('btnSave').disabled = true; // enabled once title filled
+  }
+
   document.getElementById('modalOverlay').classList.add('open');
 }
 function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); editingId = null; }
@@ -2413,12 +2472,14 @@ function setType(t) {
   currentType = t;
   document.getElementById('typePos').className = 'type-option' + (t === 'positive' ? ' active-pos' : '');
   document.getElementById('typeNeg').className = 'type-option' + (t === 'negative' ? ' active-neg' : '');
+  checkModalDirty();
 }
 function updateImpact() {
   const v = parseInt(document.getElementById('inputImpact').value);
   document.getElementById('impactNum').textContent = v;
   document.getElementById('impactTitle').textContent = IMP_LBL[v];
   document.getElementById('impactSub').textContent = IMP_SUB[v];
+  checkModalDirty();
 }
 function saveEntry() {
   const title = document.getElementById('inputTitle').value.trim();
@@ -2446,6 +2507,12 @@ function closeConfirm() { document.getElementById('confirmOverlay').classList.re
 function confirmDelete() { entries = entries.filter(e => e.id !== deletingId); saveEntries(); closeConfirm(); render(); }
 
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('modalOverlay')) closeModal(); });
+
+// Detect changes in text inputs and selects for dirty-state tracking
+document.getElementById('inputTitle').addEventListener('input', checkModalDirty);
+document.getElementById('inputDesc').addEventListener('input', checkModalDirty);
+document.getElementById('inputMonth').addEventListener('change', checkModalDirty);
+document.getElementById('inputYear').addEventListener('change', checkModalDirty);
 
 // Mobile: block backdrop touches but let the overlay scroll natively via CSS touch-action
 // We only need to block touches that land directly on the backdrop (not inside the modal)
