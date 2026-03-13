@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Life Timeline</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230e0f14'/><path d='M4 16 Q8 6 12 16 Q16 26 20 16 Q24 6 28 16' stroke='%236de8a0' stroke-width='2' fill='none' stroke-linecap='round'/></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -523,13 +523,24 @@
 
   /* ── Mobile responsive ─────────────────────────────────────── */
   @media (max-width: 640px) {
-    body { height: 100dvh; padding-bottom: calc(76px + max(0px, env(safe-area-inset-bottom))); }
+    body {
+      height: 100dvh;
+      padding-top: 60px; /* space for fixed header */
+      padding-bottom: calc(76px + max(0px, env(safe-area-inset-bottom)));
+    }
+
+    /* Bottom nav — reinforce edge-to-edge fixed */
+    .mobile-toolbar {
+      left: 0 !important; right: 0 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
 
     /* Modal — fits within viewport with visible margins, scrollable */
     .modal-overlay {
       align-items: flex-start;
       padding: 20px 16px;
-      overflow-y: auto;
+      overflow-y: hidden; /* overlay itself doesn't scroll — modal does */
       -webkit-overflow-scrolling: touch;
     }
     .modal {
@@ -539,6 +550,10 @@
       border-radius: 16px;
       transform: translateY(10px);
       margin: auto 0;
+      max-height: calc(100dvh - 80px); /* leave room for margins */
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain; /* prevents scroll chaining to page */
     }
     .modal-overlay.open .modal { transform: translateY(0); }
     .modal h2 { font-size: 19px; margin-bottom: 20px; }
@@ -560,6 +575,11 @@
       flex-wrap: nowrap;
       gap: 10px;
       align-items: center;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      width: 100%;
+      box-sizing: border-box;
+      z-index: 200;
     }
     /* Title on one line, no subtext */
     .header-left { flex-shrink: 0; }
@@ -2403,6 +2423,24 @@ function closeConfirm() { document.getElementById('confirmOverlay').classList.re
 function confirmDelete() { entries = entries.filter(e => e.id !== deletingId); saveEntries(); closeConfirm(); render(); }
 
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === document.getElementById('modalOverlay')) closeModal(); });
+
+// Mobile: prevent page scroll/pull-to-refresh when modal is open
+// Allow touch scroll only within the modal card itself
+const _modalOverlay = document.getElementById('modalOverlay');
+const _modal = _modalOverlay.querySelector('.modal');
+
+_modalOverlay.addEventListener('touchmove', function(e) {
+  // If the touch is inside the scrollable modal, allow it
+  if (_modal.contains(e.target)) {
+    // Only allow if modal is actually scrollable
+    const canScroll = _modal.scrollHeight > _modal.clientHeight;
+    if (!canScroll) e.preventDefault();
+    // If scrollable, let it scroll but don't let it reach the page
+    return;
+  }
+  // Touch is on the backdrop — block completely
+  e.preventDefault();
+}, { passive: false });
 document.getElementById('confirmOverlay').addEventListener('click', e => { if (e.target === document.getElementById('confirmOverlay')) closeConfirm(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeVideoModal(); closePopover(); } });
 
@@ -2447,6 +2485,13 @@ function populateYearDropdown() {
   sel.value = curYear;
 }
 populateYearDropdown();
+
+// Prevent pinch-to-zoom on mobile
+document.addEventListener('touchmove', function(e) {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
+document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
 
 window.addEventListener('resize', render);
 render();
