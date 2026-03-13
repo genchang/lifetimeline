@@ -131,6 +131,7 @@
     box-shadow: 0 0 22px rgba(232,109,109,0.22);
   }
   .event-label:hover .orb { filter: brightness(1.3); }
+  .event-label.is-hovered .orb { filter: brightness(1.3); }
 
   .event-connector { width: 1px; flex-shrink: 0; }
   .event-label.positive .event-connector {
@@ -720,9 +721,12 @@
   }
   .event-label.positive .orb::after  { border-color: rgba(109,232,160,0); }
   .event-label.negative .orb::after  { border-color: rgba(232,109,109,0); }
-  .event-label:hover .orb::after { animation: orb-border-spin 4s linear infinite; }
-  .event-label.positive:hover .orb::after { border-color: rgba(109,232,160,0.5); }
-  .event-label.negative:hover .orb::after { border-color: rgba(232,109,109,0.5); }
+  .event-label:hover .orb::after,
+  .event-label.is-hovered .orb::after { animation: orb-border-spin 4s linear infinite; }
+  .event-label.positive:hover .orb::after,
+  .event-label.positive.is-hovered .orb::after { border-color: rgba(109,232,160,0.5); }
+  .event-label.negative:hover .orb::after,
+  .event-label.negative.is-hovered .orb::after { border-color: rgba(232,109,109,0.5); }
 
   /* Inner satellite orbs (replace count badge) */
   .orb-satellites {
@@ -736,7 +740,8 @@
     transition: transform 0.6s ease;
   }
   /* Dots brighter on hover */
-  .event-label:hover .orb-satellites circle {
+  .event-label:hover .orb-satellites circle,
+  .event-label.is-hovered .orb-satellites circle {
     filter: brightness(2) saturate(1.3);
   }
 
@@ -1902,20 +1907,34 @@ function stopRingAnims(label) {
 }
 
 function bindMoonCanvases(container) {
+  // Unified enter/leave handlers with both mouse and touch support
+  function bindHover(label, onEnter, onLeave) {
+    label.addEventListener('mouseenter', onEnter);
+    label.addEventListener('mouseleave', onLeave);
+    // Touch: touchstart = enter, touchend/touchcancel = leave
+    label.addEventListener('touchstart', (e) => { onEnter(); }, { passive: true });
+    label.addEventListener('touchend',   (e) => { onLeave(); }, { passive: true });
+    label.addEventListener('touchcancel',(e) => { onLeave(); }, { passive: true });
+  }
+
   container.querySelectorAll('.orb-moon-canvas').forEach(canvas => {
     const label = canvas.closest('.event-label');
     if (!label) return;
     drawMoonStatic(canvas);
-    label.addEventListener('mouseenter', () => { startMoonAnim(canvas); startRingAnims(label); });
-    label.addEventListener('mouseleave', () => { stopMoonAnim(canvas);  stopRingAnims(label);  });
+    bindHover(label,
+      () => { label.classList.add('is-hovered');    startMoonAnim(canvas); startRingAnims(label); },
+      () => { label.classList.remove('is-hovered'); stopMoonAnim(canvas);  stopRingAnims(label);  }
+    );
   });
 
-  // Orbs without audio still need ring hover
+  // Orbs without audio still need ring hover + border spin
   container.querySelectorAll('.event-label').forEach(label => {
-    if (label.querySelector('.orb-moon-canvas')) return; // already handled
-    if (!label.querySelector('.sat-ring')) return;
-    label.addEventListener('mouseenter', () => startRingAnims(label));
-    label.addEventListener('mouseleave', () => stopRingAnims(label));
+    if (label.querySelector('.orb-moon-canvas')) return; // already handled above
+    if (!label.querySelector('.sat-dot') && !label.querySelector('.orb-satellites')) return;
+    bindHover(label,
+      () => { label.classList.add('is-hovered');    startRingAnims(label); },
+      () => { label.classList.remove('is-hovered'); stopRingAnims(label);  }
+    );
   });
 }
 
